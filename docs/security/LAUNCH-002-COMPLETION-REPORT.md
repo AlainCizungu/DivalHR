@@ -40,12 +40,12 @@ the first drill runs on the production host. Scale path in ADR 0048 section 5.
 
 Run in the sandbox (no Terraform, Docker, shellcheck or AWS available there):
 
-- `node --test scripts/ops/production-policy.test.mjs`: **83 passed, 0 failed**.
-- All of `pnpm ops:test`'s files: **272 passed, 0 failed**, including the BACKLOG test.
+- `node --test scripts/ops/production-policy.test.mjs`: **92 passed, 0 failed** (after the R231 round).
+- All of `pnpm ops:test`'s files: **284 passed, 0 failed** (sandbox, Linux), including the BACKLOG test.
 - `tsc` (app and node projects), `eslint` and `prettier --check` clean on the web changes and the new specs; every shell
   script passes `bash -n`; `render-realm.py` compiles and renders in the tests.
 - Not run in the sandbox, to be run on the Mac and in CI: the vitest suite (`origins.test.tsx` and the existing web tests),
-  `terraform fmt -check` and `terraform validate`, `shellcheck`. **Live acceptance, the two browser journeys, the restore
+  `terraform fmt -check` and `terraform validate` (now also a normal-CI job). `shellcheck -x -S warning` passes locally (0.11.0). **Live acceptance, the two browser journeys, the restore
   drill and any AWS verification were not run, as the issue forbids.**
 
 ## 5. Secrets, network, identity and isolation evidence
@@ -79,13 +79,28 @@ No new user-facing copy: the two-origin change reuses the existing commercial st
 and French and the public journey runs the axe check used by LAUNCH-004. The commercial site is indexable on `divalhr.com`
 and carries no test badge; the application origin is noindex.
 
+## 8A. Correction round R231-1 to R231-7 (architecture review of PR #231)
+
+| Item | Change | Evidence |
+| --- | --- | --- |
+| R231-1 SMTP route | The CIDR egress rule and `email_provider_cidrs` are removed. Mail leaves only through an Amazon SES SMTP interface VPC endpoint (`email-smtp`, private DNS, endpoint SG with the submission port from the host SG only). `email_submission_port` is limited to the SES ports. `prod_load_mail` pins `PROD_MAIL_HOST` to `email-smtp.<region>.amazonaws.com` of the deployment region; the drill host `drill-no-mail.invalid` is accepted only under `PROD_DRILL_MODE=1`. | policy tests: host egress is exactly endpoints, S3 and the SMTP endpoint; endpoint routable with SG both ways; endpoint list closed (no partner or payment service); host pinned |
+| R231-2 deploy gate | New `ops/production/verify-record.py`, used by `deploy.sh` and `remote-deploy.sh`: decision on a copy holding only the chosen run, which must be the accepted one; `profile=full`; complete classification; all 11 rehearsal steps and the three stages PASS; zero Core failures or errors; zero browser failed, flaky, retried or not-run; hygiene PASS; checksum, 0444 mode and freshness from the record timestamps. The workstation sends the record's SHA-256 through SSM; the host verifies it, restores 0444 (lost in the S3 round trip) and re-runs every rule. Only the chosen run is uploaded and downloaded. | 5 new tests in `evidence.test.mjs` (full accepted; pr rejected with a good sibling present; incomplete class, missing step, flaky, retried, not-run, hygiene, Core failure rejected; other tree; stale; host checksum and mode restore) |
+| R231-3 acceptance | `accept.sh` fails before Playwright when any credential, origin or mail command is missing, reads a JSON report and `verify-journeys.py` requires exactly two expected tests with none failed, skipped, flaky, retried or not run. | policy tests (static order check; five report fixtures) |
+| R231-4 synthetic tenant | `tenant.spec.ts` creates one `ACCEPTANCE-SYNTHETIC` organization through the platform path, invites the first administrator and two employees through production e-mail (read only by the operator's `PROD_ACCEPTANCE_MAIL_CMD`), runs import (fr), leave (fr/en), shift and attendance, timesheet, payroll preparation (en), then separates the employees and waits for access `COMPLETED`. Cleanup of the first administrator identity and the organization is an operator step: `docs/security/LAUNCH-002-ACCEPTANCE-TENANT.md`. Lock stays closed; no pack, no partner, no database edit. | static (eslint, tsc, prettier); **not executed: it needs the production stack, which this story may not touch** |
+| R231-5 service workers | Config now `serviceWorkers: 'allow'`; the public journey installs the worker on the first load, reloads, asserts the controller, then proves Sign in reaches the production realm and `/identity/`, `/api/` and `/ai/` are not answered with the application shell. | static; runs at acceptance |
+| R231-6 two tests | `public.spec.ts` has one test and `tenant.spec.ts` one; redirect and origin rules stay in unit and policy tests. | policy test counts exactly two, no skip or retry |
+| R231-7 CI and Node | `.github/workflows/production-infra.yml`: pinned Terraform 1.9.8 (zip checked against the release SHA256SUMS), `fmt -check`, `init -backend=false`, `validate`, `shellcheck -x -P SCRIPTDIR -S warning` on every `ops/production/*.sh`, and the policy and evidence suites. Host prerequisite is Node.js 24 in the docs and in `realm-verify.sh`; the repository engine is unchanged. One shellcheck warning in `lib.sh` was fixed. | policy tests; local shellcheck clean |
+
+Residual risk: the synthetic tenant journey, the SES endpoint path and the Terraform job in CI have not run against real
+infrastructure; the first two are exercised at AWS verification, which this round does not start.
+
 ## 9. Limitations, costs and prerequisites
 
 Limitations as in section 3. Planning estimate of roughly USD 200 to 300 per month in a US region, unverified; the nine
 interface endpoints are the largest fixed item after the host (run the AWS Pricing Calculator before provisioning).
 Prerequisites (operator, outside Git): AWS account and region, DNS zone and ACM certificate, the transactional e-mail provider
-with SPF/DKIM/DMARC and credentials, the confirmed alarm destination, a host image with Docker, Compose, AWS CLI, git,
-python3 and Node.js 22, a build machine, and a full verification of the exact release. Until the e-mail provider exists Core
+(Amazon SES: verified identity, SPF/DKIM/DMARC, production access, SMTP credentials), the confirmed alarm destination, a host image with Docker, Compose, AWS CLI, git,
+python3 and Node.js 24, a build machine, and a full verification of the exact release. Until the e-mail provider exists Core
 cannot start and onboarding is refused (fail closed).
 
 ## 10. Exact next step

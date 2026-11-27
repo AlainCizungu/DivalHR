@@ -84,6 +84,7 @@ drill_env() {
   export HR_DEV_RELEASES="$LIVE_DATA/releases"
   export PROD_SUBNET_PREFIX="${PROD_DRILL_SUBNET_PREFIX:-10.73}" PROD_ADMIN_PORT=29180 PROD_HTTPS_PUBLISH=127.0.0.1:29443
   export PROD_LISTENER=127.0.0.1:29443
+  export PROD_DRILL_MODE=1
 }
 teardown() {
   kill "$WATCH_PID" 2>/dev/null

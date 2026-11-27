@@ -93,15 +93,15 @@ variable "alarm_email" {
   default     = "contact@dival.ai"
 }
 
-variable "email_provider_cidrs" {
-  description = "Address ranges of the approved transactional e-mail provider. Empty (default) means no mail egress at all: onboarding fails closed."
-  type        = list(string)
-  default     = []
-}
-
 variable "email_submission_port" {
-  type    = number
-  default = 587
+  description = "SMTP submission port of the Amazon SES interface endpoint (25, 465, 587, 2465 or 2587)."
+  type        = number
+  default     = 587
+
+  validation {
+    condition     = contains([25, 465, 587, 2465, 2587], var.email_submission_port)
+    error_message = "The SES SMTP endpoint accepts only ports 25, 465, 587, 2465 and 2587."
+  }
 }
 
 variable "emergency_allow_cidrs" {

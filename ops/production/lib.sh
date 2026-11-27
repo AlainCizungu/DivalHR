@@ -47,9 +47,21 @@ prod_config() { tr -d '\r\n' < "$PROD_DATA/config/$1" 2>/dev/null; }
 prod_load_mail() {
   local f="$PROD_DATA/config/mail.env"
   [ -s "$f" ] || prod_die "the approved e-mail provider is not configured ($f): customer onboarding stays refused, and Core cannot start without it"
+  set -a
   # shellcheck disable=SC1090
-  set -a; . "$f"; set +a
+  . "$f"
+  set +a
   [ -n "${PROD_MAIL_HOST:-}" ] && [ -n "${PROD_MAIL_FROM:-}" ] || prod_die "mail.env must set PROD_MAIL_HOST and PROD_MAIL_FROM"
+  # The only routable mail path is the Amazon SES SMTP interface endpoint (private DNS) in the
+  # deployment's own region. Any other host has no route from the private subnet.
+  if [ "${PROD_DRILL_MODE:-0}" = 1 ] && [ "$PROD_MAIL_HOST" = drill-no-mail.invalid ]; then
+    :
+  else
+    local region="${PROD_REGISTRY#*.dkr.ecr.}"; region="${region%%.*}"
+    [ -n "$region" ] && [ "$PROD_MAIL_HOST" = "email-smtp.$region.amazonaws.com" ] \
+      || prod_die "PROD_MAIL_HOST must be email-smtp.<region>.amazonaws.com of the deployment region (the SES SMTP interface endpoint); nothing else is routable"
+    case "${PROD_MAIL_PORT:-587}" in 25|465|587|2465|2587) ;; *) prod_die "PROD_MAIL_PORT must be an SES SMTP port (25, 465, 587, 2465, 2587)" ;; esac
+  fi
   [ -s "$PROD_DATA/secrets/core/DIVALHR_MAIL_PASSWORD" ] || [ -z "${PROD_MAIL_USERNAME:-}" ] \
     || prod_die "the provider's password file is missing (secrets/core/DIVALHR_MAIL_PASSWORD)"
 }

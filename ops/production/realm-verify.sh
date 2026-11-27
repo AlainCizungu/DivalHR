@@ -9,6 +9,7 @@ set -u
 prod_require_root
 RELEASE="${1:?release sha}"
 command -v node >/dev/null || prod_die "Node.js is not installed on the host (prerequisite of the final realm verification)"
+[ "$(node -p 'process.versions.node.split(".")[0]')" = 24 ] || prod_die "Node.js 24 is required on the host (the repository engine line); found $(node -v)"
 env_file="$PROD_DATA/secrets/ops/kc-admin.env"
 [ -r "$env_file" ] || prod_die "no permanent Keycloak operator yet (run keycloak-admin-setup.sh)"
 user=$(sed -n 's/^KC_ADMIN_USER=//p' "$env_file"); pass=$(sed -n 's/^KC_ADMIN_PASSWORD=//p' "$env_file")

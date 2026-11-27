@@ -55,7 +55,24 @@ step 04-host-evidence ssm '/srv/divalhr-prod/current/ops/production/evidence-hos
 step 05-backup-and-drill ssm 'cat /srv/divalhr-prod/state/last-restore-drill; echo backup_age_s=$(( $(date +%s) - $(cat /srv/divalhr-prod/state/last-backup-success) )); grep -q "^result=PASS" /srv/divalhr-prod/state/last-restore-drill && [ $(( $(date +%s) - $(cat /srv/divalhr-prod/state/last-backup-success) )) -lt 93600 ]'
 step 06-log-hygiene ssm '/srv/divalhr-prod/current/ops/production/log-hygiene.sh --since '"$(date -u -v-1H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%SZ)"
 WEB="$HERE/../../apps/web"
-step 07-browser-journeys bash -c "cd '$WEB' && PROD_PUBLIC_URL='https://${PROD_PUBLIC_HOST:-divalhr.com}' PROD_APP_URL='https://${PROD_APP_HOST:-app.divalhr.com}' PROD_WWW_URL='https://www.${PROD_PUBLIC_HOST:-divalhr.com}' pnpm exec playwright test -c playwright.production.config.ts"
+# The journeys never skip: every input is checked BEFORE Playwright starts, and the machine-readable
+# result must show exactly the two expected journeys, none failed, skipped, flaky or retried.
+journeys() {
+  local missing="" v
+  for v in PROD_PLATFORM_ADMIN_USER PROD_PLATFORM_ADMIN_PASSWORD PROD_PLATFORM_ADMIN_TOTP_SECRET \
+    PROD_ACCEPTANCE_MAILBOX PROD_ACCEPTANCE_MAIL_CMD; do
+    [ -n "${!v:-}" ] || missing="$missing $v"
+  done
+  [ -z "$missing" ] || { echo "STOP: required and not set:$missing (the synthetic tenant journey is never skipped)"; return 1; }
+  [ -x "$PROD_ACCEPTANCE_MAIL_CMD" ] || { echo "STOP: PROD_ACCEPTANCE_MAIL_CMD is not an executable file"; return 1; }
+  local host="${PROD_PUBLIC_HOST:-divalhr.com}" app="${PROD_APP_HOST:-app.divalhr.com}"
+  rm -f "$OUT/journeys.json" "$OUT/tenant-evidence.json"
+  ( cd "$WEB" && PROD_PUBLIC_URL="https://$host" PROD_APP_URL="https://$app" PROD_WWW_URL="https://www.$host" \
+      PROD_PLAYWRIGHT_JSON="$OUT/journeys.json" PROD_ACCEPTANCE_EVIDENCE="$OUT/tenant-evidence.json" \
+      pnpm exec playwright test -c playwright.production.config.ts ) || { echo "FAIL playwright exited non-zero"; return 1; }
+  python3 "$HERE/verify-journeys.py" "$OUT/journeys.json"
+}
+step 07-browser-journeys journeys
 step 08-launch-lock-still-closed lock_closed
 { echo "result=$([ $FAIL = 0 ] && echo PASS || echo FAIL)"; echo "finished=$(date -u +%Y-%m-%dT%H:%M:%SZ)"; echo "launch_lock=CLOSED (acceptance never lifts it)"; } > "$OUT/result.txt"
 ( cd "$OUT" && shasum -a 256 ./*.txt > SHA256SUMS )

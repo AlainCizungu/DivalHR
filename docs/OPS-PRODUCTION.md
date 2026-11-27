@@ -35,9 +35,9 @@ Until each of these exists, the corresponding boundary **fails closed** and noth
 | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | AWS account, one region, a named operator identity with the `operator-deploy` policy | Nothing can be provisioned; the Terraform has no default region            |
 | DNS zone for `divalhr.com`; ACM certificate (DNS-validated) for the three names    | No load-balancer listener; `certificate_arn` has no default                |
-| Transactional e-mail provider, its SPF/DKIM/DMARC DNS, SMTP credentials            | `config/mail.env` absent: Core cannot start, **onboarding is refused**; `email_provider_cidrs` empty means no mail egress |
+| Transactional e-mail provider, its SPF/DKIM/DMARC DNS, SMTP credentials            | `config/mail.env` absent: Core cannot start, **onboarding is refused**; mail leaves only through the SES SMTP VPC endpoint |
 | Alarm destination `contact@dival.ai` confirms the SNS subscription                 | Alarms fire into an unconfirmed subscription: acceptance item fails        |
-| A host image (AMI) with Docker Engine and the Compose plugin, AWS CLI v2, git, python3, curl, openssl, Node.js 22, the SSM agent | Deployment stops at the first missing tool (final realm verification needs Node) |
+| A host image (AMI) with Docker Engine and the Compose plugin, AWS CLI v2, git, python3, curl, openssl, Node.js 24 (the repository engine line, >=24.21.0 <25), the SSM agent | Deployment stops at the first missing tool (final realm verification needs Node) |
 | A build machine with Docker, the AWS CLI, skopeo, Node/Gradle for the Keycloak extension | Images cannot be built or mirrored; the host never builds                  |
 | A full verification run of the exact release (`ops/hr-dev` rehearsal evidence)     | `deploy.sh` and `remote-deploy.sh` refuse: hr-dev evidence of another tree never counts |
 
@@ -57,7 +57,7 @@ the application-consistent backup (section 9).
 Not part of LAUNCH-002. Listed so the first execution is mechanical and every step leaves evidence:
 
 1. **Provision** (`infrastructure/production/terraform`, operator credentials): `terraform init/plan/apply` with the
-   variables `region`, `ami_id`, `certificate_arn` and, when approved, `email_provider_cidrs`. Review the plan with the
+   variables `region`, `ami_id`, `certificate_arn` and `email_submission_port` if not 587. Review the plan with the
    founder first. The launch-lock parameter is created `CLOSED`.
 2. **DNS and certificate** (separately approved): validate the ACM certificate; point `divalhr.com`, `www` and `app` at
    the load balancer. `manage_dns` stays `false` unless the founder approves Route 53 management.
@@ -68,7 +68,9 @@ Not part of LAUNCH-002. Listed so the first execution is mechanical and every st
 5. **Secrets**: `ops/production/secrets-bootstrap.sh --region <region>` from the workstation creates every generated secret
    in Secrets Manager (never shown, never overwritten). The operator stores the e-mail provider's SMTP password as the
    secret `divalhr/production/mail/DIVALHR_MAIL_PASSWORD` from the provider's console.
-6. **E-mail provider**: write `config/mail.env` with `PROD_MAIL_HOST`, `PROD_MAIL_PORT`, `PROD_MAIL_FROM`,
+6. **E-mail (Amazon SES)**: verify the sending identity and SPF/DKIM/DMARC, obtain SES production access, create the SMTP
+   credentials. Write `config/mail.env` with `PROD_MAIL_HOST=email-smtp.<region>.amazonaws.com` (the VPC SMTP endpoint, private
+   DNS; any other host is refused), `PROD_MAIL_PORT` (587 unless `email_submission_port` was changed), `PROD_MAIL_FROM`,
    `PROD_MAIL_USERNAME` (non-secret values). Until this file exists the deployment refuses.
 7. **Images**: `ops/production/mirror-images.sh` (Caddy and PostgreSQL by digest), then
    `ops/production/build-push.sh <sha>` for the release.
@@ -76,7 +78,9 @@ Not part of LAUNCH-002. Listed so the first execution is mechanical and every st
    `ops/hr-dev` rehearsal), keeping its checksummed run directory.
 9. **First deployment**: `bash ops/production/deploy.sh <sha> --evidence-run <run dir> --approval <reference> --first-run`.
 10. **Restore drill** (section 9): the first production deployment is **not accepted** until one complete drill passes.
-11. **Acceptance**: `bash ops/production/accept.sh --evidence-dir <dir>` with the launch lock closed (section 12).
+11. **Acceptance**: `bash ops/production/accept.sh --evidence-dir <dir>` with the launch lock closed (section 12). It needs
+    the synthetic-tenant inputs of [LAUNCH-002-ACCEPTANCE-TENANT](security/LAUNCH-002-ACCEPTANCE-TENANT.md) and stops before
+    the browser journeys when any is missing; the operator then disables the synthetic first-administrator identity.
 
 ## 5. Deploying a release
 

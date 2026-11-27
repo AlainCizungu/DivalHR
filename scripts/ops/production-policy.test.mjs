@@ -111,24 +111,70 @@ describe('network exposure (L2-3)', () => {
     }
   });
 
-  it('egress of the host is endpoints, S3 and the approved e-mail submission port only', () => {
+  it('egress of the host is endpoints, the SES SMTP endpoint and S3 only', () => {
     const egress = resources('aws_vpc_security_group_egress_rule').filter((rule) =>
       /^\s*security_group_id\s*=\s*aws_security_group\.host\.id/m.test(rule.body),
     );
     assert.deepEqual(egress.map((rule) => rule.name).sort(), [
-      'host_to_email_provider',
       'host_to_endpoints',
       'host_to_s3',
+      'host_to_smtp_endpoint',
     ]);
-    for (const rule of egress) assert.doesNotMatch(rule.body, /0\.0\.0\.0\/0/);
+    for (const rule of egress) assert.doesNotMatch(rule.body, /cidr_ipv4|cidr_ipv6/);
+    assert.doesNotMatch(allTf, /email_provider_cidrs/, 'no CIDR-based mail egress');
+  });
+
+  it('the configured mail provider is routable: SES SMTP interface endpoint, SG both ways, private DNS', () => {
+    assert.match(allTf, /"email-smtp"/);
+    assert.match(one('aws_vpc_endpoint', 'interface'), /private_dns_enabled\s*=\s*true/);
     assert.match(
-      one('aws_vpc_security_group_egress_rule', 'host_to_email_provider'),
-      /for_each\s*=\s*toset\(var\.email_provider_cidrs\)/,
+      one('aws_vpc_endpoint', 'interface'),
+      /security_group_ids\s*=\s*\[aws_security_group\.endpoints\.id\]/,
+    );
+    const out = one('aws_vpc_security_group_egress_rule', 'host_to_smtp_endpoint');
+    assert.match(out, /referenced_security_group_id\s*=\s*aws_security_group\.endpoints\.id/);
+    assert.match(out, /from_port\s*=\s*var\.email_submission_port/);
+    const inn = one('aws_vpc_security_group_ingress_rule', 'endpoints_smtp_from_host');
+    assert.match(inn, /^\s*security_group_id\s*=\s*aws_security_group\.endpoints\.id/m);
+    assert.match(inn, /referenced_security_group_id\s*=\s*aws_security_group\.host\.id/);
+    assert.match(inn, /to_port\s*=\s*var\.email_submission_port/);
+    assert.match(variable('email_submission_port'), /2587/);
+    assert.match(variable('email_submission_port'), /default\s*=\s*587/);
+  });
+
+  it('partner and payment egress stays absent: no NAT, no default route, no other endpoint', () => {
+    const m = tf['network.tf'].match(/interface_endpoints\s*=\s*\[([^\]]*)\]/);
+    assert.ok(m, 'interface endpoint list');
+    const names = [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]).sort();
+    assert.deepEqual(
+      names,
+      [
+        'ecr.api',
+        'ecr.dkr',
+        'email-smtp',
+        'ec2messages',
+        'kms',
+        'logs',
+        'monitoring',
+        'secretsmanager',
+        'ssm',
+        'ssmmessages',
+      ].sort(),
+    );
+    assert.equal(resources('aws_nat_gateway').length, 0);
+    assert.equal(
+      resources('aws_internet_gateway').length > 0,
+      true,
+      'the public subnet keeps its gateway for the load balancer only',
     );
   });
 
-  it('the e-mail provider egress is empty until the operator names the provider', () => {
-    assert.match(variable('email_provider_cidrs'), /default\s*=\s*\[\]/);
+  it('production mail configuration is pinned to the SES endpoint of the deployment region', () => {
+    const lib = read('ops/production/lib.sh');
+    assert.match(lib, /email-smtp\.\$region\.amazonaws\.com/);
+    assert.match(lib, /25\|465\|587\|2465\|2587/);
+    assert.match(lib, /PROD_DRILL_MODE/);
+    assert.match(read('ops/production/restore-drill.sh'), /export PROD_DRILL_MODE=1/);
   });
 });
 
@@ -658,7 +704,9 @@ describe('guards of the production scripts (L2-10)', () => {
     assert.match(text, /DEPLOY PRODUCTION/);
     assert.match(text, /merge-base --is-ancestor/);
     assert.match(text, /provenance\.py/);
-    assert.match(text, /evidence\.py" decide/);
+    assert.match(text, /verify-record\.py/);
+    assert.doesNotMatch(text, /RUNS_PARENT/, 'never decide over a directory that holds siblings');
+    assert.match(text, /--evidence-sha256 \$EVSHA/);
     assert.doesNotMatch(
       text,
       /--deployed/,
@@ -669,8 +717,12 @@ describe('guards of the production scripts (L2-10)', () => {
     assert.doesNotMatch(text, /\bssh |\bscp /, 'no SSH: Systems Manager only');
     const remote = read('ops/production/remote-deploy.sh');
     assert.match(remote, /list-heads/);
-    assert.match(remote, /evidence\.py" decide/);
+    assert.match(remote, /verify-record\.py/);
+    assert.match(remote, /--restore-mode/);
     assert.doesNotMatch(remote, /--deployed/);
+    const verify = read('ops/production/verify-record.py');
+    for (const rule of ['"full"', 'COMPLETE_STEPS', 'flaky', 'notrun', 'retries', 'hygiene'])
+      assert.ok(verify.includes(rule), rule);
     assert.match(remote, /rollback\.sh" --from/);
     assert.match(remote, /backup\.sh" --reason pre-deploy/);
     assert.match(remote, /prod_export_env/);
@@ -821,5 +873,109 @@ describe('every production script parses', () => {
       'import ast,sys; ast.parse(open(sys.argv[1]).read())',
       join(prodOps, 'render-realm.py'),
     ]);
+  });
+});
+
+describe('production browser journeys: exactly two, never skipped (R231-3..R231-6)', () => {
+  const dir = join(root, 'apps/web/e2e/production');
+  const specs = ['public.spec.ts', 'tenant.spec.ts'];
+  it('exactly two Playwright tests, no skip, no retries, service workers allowed', () => {
+    let count = 0;
+    for (const spec of specs) {
+      const text = readFileSync(join(dir, spec), 'utf8');
+      count += (text.match(/^test\(/gmu) ?? []).length;
+      assert.doesNotMatch(text, /test\.skip|\.fixme|test\.fail|retries/u, spec);
+    }
+    assert.equal(count, 2);
+    assert.deepEqual(
+      readdirSync(dir)
+        .filter((f) => f.endsWith('.spec.ts'))
+        .sort(),
+      specs,
+    );
+    const config = read('apps/web/playwright.production.config.ts');
+    assert.match(config, /serviceWorkers:\s*'allow'/u);
+    assert.doesNotMatch(config, /serviceWorkers:\s*'block'/u);
+    assert.match(config, /reporter:[^]*'json'/u);
+  });
+
+  it('accept.sh fails before Playwright when credentials are absent', () => {
+    const env = { PATH: process.env.PATH, HOME: mkdtempSync(join(tmpdir(), 'home-')) };
+    const text = read('ops/production/accept.sh');
+    assert.match(text, /never skipped/u);
+    assert.match(text, /verify-journeys\.py/u);
+    assert.ok(text.indexOf('required and not set') < text.indexOf('playwright test'));
+    assert.ok(env.HOME);
+  });
+
+  const report = (
+    overrides = {},
+    tests = [
+      { status: 'expected', results: [{ status: 'passed', retry: 0 }] },
+      { status: 'expected', results: [{ status: 'passed', retry: 0 }] },
+    ],
+  ) => {
+    const file = join(mkdtempSync(join(tmpdir(), 'jr-')), 'r.json');
+    writeFileSync(
+      file,
+      JSON.stringify({
+        suites: [{ specs: tests.map((t, i) => ({ title: `j${i}`, tests: [t] })), suites: [] }],
+        stats: { expected: tests.length, unexpected: 0, skipped: 0, flaky: 0, ...overrides },
+        errors: [],
+      }),
+    );
+    return spawnSync('python3', [join(prodOps, 'verify-journeys.py'), file], { encoding: 'utf8' });
+  };
+  it('verify-journeys.py accepts exactly two passed journeys and nothing else', () => {
+    assert.equal(report().status, 0);
+    const pass = { status: 'expected', results: [{ status: 'passed', retry: 0 }] };
+    assert.equal(report({}, [pass]).status, 1, 'one test');
+    assert.equal(report({}, [pass, pass, pass]).status, 1, 'three tests');
+    assert.equal(report({}, [pass, { status: 'skipped', results: [] }]).status, 1, 'skipped');
+    assert.equal(
+      report({ flaky: 1 }, [
+        pass,
+        {
+          status: 'flaky',
+          results: [
+            { status: 'failed', retry: 0 },
+            { status: 'passed', retry: 1 },
+          ],
+        },
+      ]).status,
+      1,
+      'flaky',
+    );
+    assert.equal(
+      report({}, [pass, { status: 'expected', results: [{ status: 'passed', retry: 1 }] }]).status,
+      1,
+      'retried',
+    );
+    assert.equal(
+      spawnSync('python3', [join(prodOps, 'verify-journeys.py'), '/nonexistent'], {
+        encoding: 'utf8',
+      }).status,
+      1,
+    );
+  });
+});
+
+describe('production infrastructure CI (R231-7)', () => {
+  it('runs a pinned Terraform, fmt, validate, shellcheck and the policy suite in normal CI', () => {
+    const wf = read('.github/workflows/production-infra.yml');
+    assert.match(wf, /TERRAFORM_VERSION:\s*\d+\.\d+\.\d+/u);
+    assert.match(wf, /terraform fmt -check/u);
+    assert.match(wf, /terraform init -backend=false/u);
+    assert.match(wf, /terraform validate/u);
+    assert.match(wf, /shellcheck -x[^\n]*ops\/production\/\*\.sh/u);
+    assert.match(wf, /production-policy\.test\.mjs/u);
+    assert.match(wf, /pull_request:/u);
+    for (const use of wf.match(/uses: \S+/gu) ?? []) assert.match(use, /@[0-9a-f]{40}$/u, use);
+  });
+  it('the host prerequisite is the repository Node 24 line, not Node 22', () => {
+    assert.match(read('docs/OPS-PRODUCTION.md'), /Node\.js 24/u);
+    assert.doesNotMatch(read('docs/OPS-PRODUCTION.md'), /Node\.js 22/u);
+    assert.match(read('ops/production/realm-verify.sh'), /= 24 \]/u);
+    assert.match(read('package.json'), /"node":\s*">=24\./u);
   });
 });

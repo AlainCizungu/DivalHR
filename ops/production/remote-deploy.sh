@@ -3,7 +3,7 @@
 # through Systems Manager after its provenance checks; never run by hand except in a documented
 # recovery.
 #
-#   sudo ops/production/remote-deploy.sh --bundle <file> --sha <full sha> [--first-run]
+#   sudo ops/production/remote-deploy.sh --bundle <file> --sha <full sha> --evidence-run <run id> --evidence-sha256 <hex> [--first-run]
 #
 # Fail closed: the bundle's only head is the SHA; a qualifying FULL verification of the same tree,
 # finished within PROD_EVIDENCE_MAX_AGE_HOURS, exists (the class is always `complete`: nothing is
@@ -14,11 +14,13 @@
 set -u
 . "$(dirname "$0")/lib.sh"
 
-BUNDLE="" SHA="" FIRST_RUN=0
+BUNDLE="" SHA="" FIRST_RUN=0 EVRUN="" EVSHA=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --bundle) BUNDLE="$2"; shift 2 ;;
     --sha) SHA="$2"; shift 2 ;;
+    --evidence-run) EVRUN="$2"; shift 2 ;;
+    --evidence-sha256) EVSHA="$2"; shift 2 ;;
     --first-run) FIRST_RUN=1; shift ;;
     *) prod_die "unknown argument $1" ;;
   esac
@@ -36,18 +38,16 @@ MAX_AGE_H="${PROD_EVIDENCE_MAX_AGE_HOURS:-72}"
 heads=$(git bundle list-heads "$BUNDLE" 2>/dev/null | awk '{print $1}' | sort -u)
 [ "$heads" = "$SHA" ] || prod_die "the bundle's head is not exactly $SHA"
 
-decision=$(python3 "$PROD_OPS/../hr-dev/evidence.py" decide --release "$SHA" --release-bundle "$BUNDLE" \
-  --runs "$VERIFY_RUNS" 2>&1); rc=$?
-printf '%s\n' "$decision" | while IFS= read -r line; do prod_log "evidence: $line"; done
-[ "$rc" = 0 ] || prod_die "no qualifying full verification for $SHA on this host"
-run=$(printf '%s\n' "$decision" | sed -n 's/^ACCEPT //p' | head -1)
-[ -n "$run" ] && [ -f "$VERIFY_RUNS/$run/evidence.json" ] || prod_die "the accepted verification run cannot be located"
-python3 - "$VERIFY_RUNS/$run/evidence.json" "$MAX_AGE_H" <<'PY' || prod_die "the verification is older than $MAX_AGE_H hours"
-import json, sys, datetime
-rec = json.load(open(sys.argv[1], encoding="utf-8"))
-done = datetime.datetime.strptime(rec["finishedAt"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
-sys.exit(0 if (datetime.datetime.now(datetime.timezone.utc) - done).total_seconds() / 3600 <= float(sys.argv[2]) else 1)
-PY
+case "$EVRUN" in ''|*[!0-9A-Za-z-]*|*/*) prod_die "--evidence-run must be the verification run id" ;; esac
+case "$EVSHA" in ''|*[!0-9a-f]*) prod_die "--evidence-sha256 (the record the workstation verified) is required" ;; esac
+[ "${#EVSHA}" = 64 ] || prod_die "--evidence-sha256 must be 64 hex digits"
+[ -d "$VERIFY_RUNS/$EVRUN" ] || prod_die "the verification run $EVRUN was not downloaded"
+# The same rules as on the workstation, on exactly this run: the S3 round trip drops the read-only
+# mode, so the record is first proven to be the one the workstation verified, then made 0444.
+python3 -I "$PROD_OPS/verify-record.py" --release "$SHA" --bundle "$BUNDLE" --run-dir "$VERIFY_RUNS/$EVRUN" \
+  --max-age-hours "$MAX_AGE_H" --expect-evidence-sha256 "$EVSHA" --restore-mode 2>&1 \
+  | while IFS= read -r line; do prod_log "evidence: $line"; done
+[ "${PIPESTATUS[0]}" = 0 ] || prod_die "no qualifying FULL verification of exactly $SHA / $EVRUN on this host"
 
 # --- unpack the release ------------------------------------------------------------------------
 REL="$(hr_release_dir "$SHA")"

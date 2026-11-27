@@ -75,15 +75,15 @@ resource "aws_vpc_security_group_egress_rule" "host_to_s3" {
   prefix_list_id    = data.aws_prefix_list.s3.id
 }
 
-# Transactional e-mail: one rule per approved provider range, none by default (fail closed).
-resource "aws_vpc_security_group_egress_rule" "host_to_email_provider" {
-  for_each          = toset(var.email_provider_cidrs)
-  security_group_id = aws_security_group.host.id
-  description       = "Approved transactional e-mail provider, submission port only"
-  ip_protocol       = "tcp"
-  from_port         = var.email_submission_port
-  to_port           = var.email_submission_port
-  cidr_ipv4         = each.value
+# Transactional e-mail: the Amazon SES SMTP interface endpoint is the only mail path.
+# The private subnet has no default route or NAT, so there is no other way out.
+resource "aws_vpc_security_group_egress_rule" "host_to_smtp_endpoint" {
+  security_group_id            = aws_security_group.host.id
+  description                  = "SES SMTP interface endpoint, submission port only"
+  ip_protocol                  = "tcp"
+  from_port                    = var.email_submission_port
+  to_port                      = var.email_submission_port
+  referenced_security_group_id = aws_security_group.endpoints.id
 }
 
 resource "aws_security_group" "endpoints" {
@@ -100,5 +100,14 @@ resource "aws_vpc_security_group_ingress_rule" "endpoints_from_host" {
   ip_protocol                  = "tcp"
   from_port                    = 443
   to_port                      = 443
+  referenced_security_group_id = aws_security_group.host.id
+}
+
+resource "aws_vpc_security_group_ingress_rule" "endpoints_smtp_from_host" {
+  security_group_id            = aws_security_group.endpoints.id
+  description                  = "SMTP submission from the application host"
+  ip_protocol                  = "tcp"
+  from_port                    = var.email_submission_port
+  to_port                      = var.email_submission_port
   referenced_security_group_id = aws_security_group.host.id
 }

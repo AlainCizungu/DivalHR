@@ -79,6 +79,7 @@ locals {
     "monitoring",
     "ecr.api",
     "ecr.dkr",
+    "email-smtp",
   ]
 }
 

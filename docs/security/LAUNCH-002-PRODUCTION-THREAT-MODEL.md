@@ -9,7 +9,7 @@ Scope: the controlled-pilot production environment at `https://app.divalhr.com` 
 3. **Core** and **Keycloak** use separate databases in one PostgreSQL container on the encrypted data volume. Core reaches Keycloak only through Caddy's internal route.
 4. **Secrets** come from Secrets Manager (KMS) to root-owned files on the data volume; containers read them as mounted files.
 5. **Backups**: nightly logical dumps on the data volume, copied to the versioned, encrypted S3 backup bucket; EBS snapshots by DLM. The secret store is never in a backup.
-6. **E-mail** (invitations, identity set-up) leaves through the one allow-listed submission address range, if an operator configured it.
+6. **E-mail** (invitations, identity set-up) leaves only through the Amazon SES SMTP interface endpoint (the one routable mail path), if the operator configured the sending identity.
 7. **Logs**: container logs on the host (rotated), edge access log with the SEC-001/002/003 field deletions, WAF log with redacted fields, CloudWatch metrics without personal dimensions. No request body, authorization, cookie, invitation token, idempotency key, webhook signature or personal value is logged.
 8. **Administration**: Session Manager and Run Command only; every session and command is logged by AWS. No inbound SSH.
 
@@ -27,7 +27,7 @@ Anonymous internet visitor; abusive client; stolen end-user token without MFA; c
 
 1. **Production reached from or shared with hr-dev.** Separate realm, issuer, clients, secrets paths, buckets, KMS key, ECR repository, volumes and project name. Policy tests fail on any hr-dev origin, `localhost`, development realm, seed account, Mailpit or synthetic provider in production files, and on any shared prefix.
 2. **Direct access to the host or database.** No public address on the host, no inbound SSH, security group accepts only the load balancer on one port, PostgreSQL/Core/AI/Keycloak back-channel never published. An external scan after deployment proves only 80 (redirect) and 443.
-3. **Data exfiltration or provider contact from a compromised container.** Egress is deny by default: only VPC endpoints and, if set, the e-mail submission range. No route to the internet.
+3. **Data exfiltration or provider contact from a compromised container.** Egress is deny by default: only VPC endpoints (including SES SMTP). No default route, NAT or internet path.
 4. **Abuse of anonymous endpoints** (invitation inspect/accept, partner applications). WAF managed baseline, per-address rate rules on `/api/v1/public/`, a stricter abuse rule, body-size limit; the application limiter stays on; the client address is the load balancer's view, never a client-supplied header; Caddy trusts only the load balancer's subnet for `X-Forwarded-For`.
 5. **Secret exposure.** Secrets Manager with KMS; root-owned 0400 files; none in environment metadata, Git, CI output or evidence; secret-needle scans over logs and evidence; development/test prefixes refused; rotation runbook names what cannot be rotated in place (email lookup, encryption and signing keys).
 6. **Weak identity.** Production realm with exact MFA for privileged roles, no users, exact redirect and web origins, secure cookies, no public admin console, bootstrap administrator removed after a named operator exists; final-mode realm verification gates the release.

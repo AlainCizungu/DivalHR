@@ -10,7 +10,9 @@
 #   1. a full 40-character SHA reachable from origin/main;
 #   2. every GitHub check run on that SHA green and every required check present (provenance.py);
 #   3. a qualifying, checksummed, read-only FULL verification of exactly this tree, finished within
-#      PROD_EVIDENCE_MAX_AGE_HOURS (default 72): hr-dev evidence of an earlier tree never counts;
+#      PROD_EVIDENCE_MAX_AGE_HOURS (default 72), checked by verify-record.py on the chosen run only
+#      (profile full, complete classification, every stage and step PASS, clean Core and browser
+#      counts, hygiene PASS); a "pr" record or an earlier tree never counts;
 #   4. the four images of the SHA exist in the private registry (build-push.sh);
 #   5. explicit founder approval: --approval <reference> AND the interactive confirmation phrase
 #      "DEPLOY PRODUCTION <first 12 of the SHA>" typed by the operator (never non-interactive);
@@ -90,18 +92,19 @@ git bundle create "$TMP/release.bundle" refs/divalhr/deploy >/dev/null 2>&1; BRC
 git update-ref -d refs/divalhr/deploy
 [ "$BRC" = 0 ] || die "bundle failed"
 [ "$(git bundle list-heads "$TMP/release.bundle" | awk '{print $1}' | sort -u)" = "$SHA" ] || die "bundle head mismatch"
-RUNS_PARENT="$(cd "$(dirname "$EVIDENCE_RUN")" && pwd)"
-python3 "$TMP/evidence.py" decide --release "$SHA" --release-bundle "$TMP/release.bundle" --runs "$RUNS_PARENT" \
-  | tee "$OUT/evidence-decision.txt"
-[ "${PIPESTATUS[0]}" = 0 ] || die "no qualifying full verification of this tree (hr-dev evidence of another tree never counts)"
-python3 - "$EVIDENCE_RUN/evidence.json" "$MAX_AGE_H" <<'PY' || die "the verification is older than $MAX_AGE_H hours"
-import json, sys, datetime
-rec = json.load(open(sys.argv[1], encoding="utf-8"))
-done = datetime.datetime.strptime(rec["finishedAt"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
-age = (datetime.datetime.now(datetime.timezone.utc) - done).total_seconds() / 3600
-sys.exit(0 if age <= float(sys.argv[2]) else 1)
-PY
-echo "PASS the verification is fresh (at most $MAX_AGE_H h)"
+# The decision runs on a copy holding ONLY the chosen run (a sibling run can never be the one accepted),
+# and the full-profile rules are checked explicitly (profile, classification, every stage and step,
+# Core and browser counts, hygiene, checksum, mode, freshness): verify-record.py.
+EVIDENCE_RUN="$(cd "$EVIDENCE_RUN" && pwd)"
+RUN_NAME="$(basename "$EVIDENCE_RUN")"
+mkdir -p "$TMP/ops/production" "$TMP/ops/hr-dev"
+git show "$SHA:ops/production/verify-record.py" > "$TMP/ops/production/verify-record.py" || die "the commit has no verify-record.py"
+cp "$TMP/evidence.py" "$TMP/ops/hr-dev/evidence.py"
+python3 -I "$TMP/ops/production/verify-record.py" --release "$SHA" --bundle "$TMP/release.bundle" \
+  --run-dir "$EVIDENCE_RUN" --max-age-hours "$MAX_AGE_H" | tee "$OUT/evidence-decision.txt"
+[ "${PIPESTATUS[0]}" = 0 ] || die "no qualifying FULL verification of exactly this tree and run (see the REJECT line)"
+EVSHA=$(shasum -a 256 "$EVIDENCE_RUN/evidence.json" | awk '{print $1}')
+echo "PASS the verification record is full, complete, clean and fresh (sha256 ${EVSHA:0:12})"
 
 # 4. images in the private registry
 for svc in keycloak core-api ai-service web; do
@@ -121,7 +124,7 @@ printf 'sha=%s\napproval=%s\nconfirmed=%s\n' "$SHA" "$APPROVAL" "$(date -u +%Y-%
 BSUM=$(shasum -a 256 "$TMP/release.bundle" | awk '{print $1}')
 S3="s3://$DIVALHR_PROD_EVIDENCE_BUCKET"
 "$AWS" s3 cp --region "$DIVALHR_PROD_REGION" --only-show-errors "$TMP/release.bundle" "$S3/releases/$SHA/release.bundle" || die "upload failed"
-"$AWS" s3 cp --region "$DIVALHR_PROD_REGION" --only-show-errors --recursive "$EVIDENCE_RUN" "$S3/verification/$SHA/$(basename "$EVIDENCE_RUN")/" || die "evidence upload failed"
+"$AWS" s3 cp --region "$DIVALHR_PROD_REGION" --only-show-errors --recursive "$EVIDENCE_RUN" "$S3/verification/$SHA/$RUN_NAME/" || die "evidence upload failed"
 cp "$OUT/provenance.txt" "$OUT/evidence-decision.txt" "$OUT/approval.txt" "$TMP/" 2>/dev/null
 "$AWS" s3 cp --region "$DIVALHR_PROD_REGION" --only-show-errors --recursive "$OUT" "$S3/evidence/$RUN/" || die "evidence upload failed"
 
@@ -130,10 +133,10 @@ set -eu
 D=/root/divalhr-deploy/$RUN; mkdir -p "\$D/runs"; chmod 700 /root/divalhr-deploy "\$D"
 aws s3 cp --region $DIVALHR_PROD_REGION --only-show-errors $S3/releases/$SHA/release.bundle "\$D/release.bundle"
 echo "$BSUM  \$D/release.bundle" | sha256sum -c - >/dev/null
-aws s3 cp --region $DIVALHR_PROD_REGION --only-show-errors --recursive $S3/verification/$SHA/ "\$D/runs/"
+aws s3 cp --region $DIVALHR_PROD_REGION --only-show-errors --recursive $S3/verification/$SHA/$RUN_NAME/ "\$D/runs/$RUN_NAME/"
 T=\$(mktemp -d); git init -q --bare "\$T/repo"; git -C "\$T/repo" fetch -q "\$D/release.bundle" "+refs/*:refs/bundle/*"
 mkdir "\$T/ops"; git -C "\$T/repo" archive $SHA ops | tar -x -C "\$T/ops"
-PROD_VERIFY_RUNS="\$D/runs" "\$T/ops/ops/production/remote-deploy.sh" --bundle "\$D/release.bundle" --sha $SHA $FIRST 2>&1 | tee "\$D/deploy.log"
+PROD_VERIFY_RUNS="\$D/runs" "\$T/ops/ops/production/remote-deploy.sh" --bundle "\$D/release.bundle" --sha $SHA --evidence-run $RUN_NAME --evidence-sha256 $EVSHA $FIRST 2>&1 | tee "\$D/deploy.log"
 rc=\${PIPESTATUS[0]}; rm -rf "\$T"; echo "exit=\$rc"; exit \$rc
 REMOTE
 )

@@ -1,0 +1,63 @@
+name: production infrastructure
+# LAUNCH-002 (R231-7): the production infrastructure and operations code are checked on every
+# pull request that touches them, with no cloud credentials and no state: Terraform formatting and
+# validation (pinned version, backend disabled), shellcheck of every production script, and the
+# production policy suite (egress, SES SMTP routability, deploy gate, journeys).
+on:
+  pull_request:
+    paths:
+      - 'infrastructure/production/**'
+      - 'ops/production/**'
+      - 'ops/hr-dev/**'
+      - 'scripts/ops/production-policy.test.mjs'
+      - 'scripts/ops/evidence.test.mjs'
+      - 'apps/web/e2e/production/**'
+      - 'apps/web/playwright.production.config.ts'
+      - '.github/workflows/production-infra.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'infrastructure/production/**'
+      - 'ops/production/**'
+permissions:
+  contents: read
+concurrency:
+  group: production-infra-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  production-infrastructure:
+    name: production infrastructure (terraform, shellcheck, policy)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      TERRAFORM_VERSION: 1.9.8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install the pinned Terraform (checksum verified against the release's SHA256SUMS)
+        run: |
+          set -euo pipefail
+          base="https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}"
+          zip="terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+          curl -fsSL -o "$zip" "$base/$zip"
+          curl -fsSL -o SHA256SUMS "$base/terraform_${TERRAFORM_VERSION}_SHA256SUMS"
+          grep " $zip\$" SHA256SUMS | sha256sum -c -
+          unzip -q "$zip" terraform
+          sudo install -m 0755 terraform /usr/local/bin/terraform
+          terraform version | head -1 | grep -F "v${TERRAFORM_VERSION}"
+      - name: terraform fmt -check
+        working-directory: infrastructure/production/terraform
+        run: terraform fmt -check -recursive -diff
+      - name: terraform init (no backend) and validate
+        working-directory: infrastructure/production/terraform
+        run: |
+          terraform init -backend=false -input=false -lockfile=readonly
+          terraform validate
+      - name: shellcheck every production script
+        run: |
+          shellcheck --version
+          shellcheck -x -P SCRIPTDIR -S warning ops/production/*.sh
+      - name: production policy suite and verification-record gate
+        run: node --test scripts/ops/production-policy.test.mjs scripts/ops/evidence.test.mjs
