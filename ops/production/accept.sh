@@ -2,19 +2,30 @@
 # LAUNCH-002 (ADR 0048, L2-12): the production acceptance. Run by the operator after the first
 # production deployment, with the launch lock CLOSED and SYNTHETIC data only. It does not lift the lock.
 #
-#   bash ops/production/accept.sh --evidence-dir <dir>
+#   bash ops/production/accept.sh --evidence-dir <dir>              # the run: ends PENDING_CLEANUP, never PASS
+#   bash ops/production/accept.sh --evidence-dir <dir> --finalize   # after the operator disabled the
+#                                                                   # synthetic first administrator
 #
 # 1. the launch lock is closed (host state AND the SSM parameter), and onboarding is refused;
 # 2. exposure checks from the internet; HTTP checks through the public names;
 # 3. the two browser journeys (public/sign-in; bilingual synthetic tenant, when the account is given);
 # 4. host evidence, a passing restore drill younger than 100 days, backup age under 26 h, log hygiene.
+# 5. the run NEVER reports PASS by itself: the synthetic first administrator cannot be separated by the
+#    product, so the result is PENDING_CLEANUP until the operator disables that identity and --finalize
+#    verifies it (read-only, in the production realm) and re-checks that the launch lock is still closed.
 # Everything is written to the evidence directory (redacted by construction: names, counts, statuses).
 # Configuration: ~/.divalhr-production/deploy.env as for deploy.sh. Credentials of the synthetic
 # account come from PROD_ACCEPTANCE_USER / PROD_ACCEPTANCE_PASSWORD in the environment only.
 set -u
 die() { echo "STOP: $*" >&2; exit 1; }
-OUT=""
-while [ $# -gt 0 ]; do case "$1" in --evidence-dir) OUT="$2"; shift 2 ;; *) die "unknown option $1" ;; esac; done
+OUT="" FINALIZE=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --evidence-dir) OUT="$2"; shift 2 ;;
+    --finalize) FINALIZE=1; shift ;;
+    *) die "unknown option $1" ;;
+  esac
+done
 [ -n "$OUT" ] || die "--evidence-dir <dir> is required"
 mkdir -p "$OUT"
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -48,6 +59,32 @@ lock_closed() {
   echo "ssm launch lock: $param"; [ "$param" = CLOSED ] || return 1
   ssm '/srv/divalhr-prod/current/ops/production/launch-lock.sh require-closed && /srv/divalhr-prod/current/ops/production/launch-lock.sh status'
 }
+finish() { # <result> [extra line]
+  { echo "result=$1"; echo "finished=$(date -u +%Y-%m-%dT%H:%M:%SZ)"; echo "launch_lock=CLOSED (acceptance never lifts it)"; [ -z "${2:-}" ] || echo "$2"; } > "$OUT/result.txt"
+  ( cd "$OUT" && shasum -a 256 ./*.txt > SHA256SUMS )
+  cat "$OUT/result.txt"
+}
+cleanup_verified() {
+  local stamp mailbox address
+  stamp=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["stamp"])' "$OUT/tenant-evidence.json") || return 1
+  case "$stamp" in ''|*[!A-Za-z0-9]*) echo "STOP: the evidence has no valid run stamp"; return 1 ;; esac
+  mailbox="${PROD_ACCEPTANCE_MAILBOX:-}"
+  case "$mailbox" in *@*) ;; *) echo "STOP: PROD_ACCEPTANCE_MAILBOX is required to name the synthetic administrator"; return 1 ;; esac
+  address="${mailbox%@*}+acc-admin-$(printf '%s' "$stamp" | tr 'A-Z' 'a-z')@${mailbox#*@}"
+  ssm "/srv/divalhr-prod/current/ops/production/acceptance-cleanup-check.sh '$address'"
+}
+
+if [ "$FINALIZE" = 1 ]; then
+  [ "$(cat "$OUT/result.txt" 2>/dev/null)" != "" ] && grep -qx 'result=PENDING_CLEANUP' "$OUT/result.txt" \
+    || die "--finalize needs an acceptance run that ended PENDING_CLEANUP in $OUT"
+  ( cd "$OUT" && shasum -a 256 -c SHA256SUMS >/dev/null 2>&1 ) || die "the evidence in $OUT no longer matches its checksums"
+  step 09-synthetic-admin-disabled cleanup_verified
+  step 10-launch-lock-closed-at-finalize lock_closed
+  if [ "$FAIL" = 0 ]; then finish PASS "cleanup=VERIFIED (synthetic first administrator disabled)"; else finish FAIL "cleanup=NOT_VERIFIED"; fi
+  [ "$FAIL" = 0 ]
+  exit $?
+fi
+
 step 01-launch-lock-closed lock_closed
 step 02-exposure bash "$HERE/exposure-check.sh" --waf-probe
 step 03-http-through-public-names env PROD_EXTERNAL=1 bash "$HERE/http-checks.sh"
@@ -74,7 +111,10 @@ journeys() {
 }
 step 07-browser-journeys journeys
 step 08-launch-lock-still-closed lock_closed
-{ echo "result=$([ $FAIL = 0 ] && echo PASS || echo FAIL)"; echo "finished=$(date -u +%Y-%m-%dT%H:%M:%SZ)"; echo "launch_lock=CLOSED (acceptance never lifts it)"; } > "$OUT/result.txt"
-( cd "$OUT" && shasum -a 256 ./*.txt > SHA256SUMS )
-cat "$OUT/result.txt"
-[ "$FAIL" = 0 ]
+if [ "$FAIL" = 0 ]; then
+  finish PENDING_CLEANUP "cleanup=PENDING (disable the synthetic first administrator, then run with --finalize)"
+  echo "NOT ACCEPTED YET: the synthetic first administrator is still enabled until you disable it (docs/security/LAUNCH-002-ACCEPTANCE-TENANT.md), then run --finalize."
+  exit 3
+fi
+finish FAIL "cleanup=NOT_ATTEMPTED"
+exit 1

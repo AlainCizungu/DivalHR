@@ -1,5 +1,5 @@
 # Operator inputs. Values live in an untracked terraform.tfvars or in the operator's evidence, never
-# in Git: account identifiers, certificate ARNs, zone identifiers, provider address ranges.
+# in Git: account identifiers, certificate ARNs, zone identifiers. (There are no mail-provider address ranges: mail uses the SES SMTP VPC endpoint.)
 
 variable "region" {
   description = "The single AWS region of the controlled pilot. Required: choosing it is an operator decision (stop condition of Issue #230)."

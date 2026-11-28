@@ -80,7 +80,9 @@ Not part of LAUNCH-002. Listed so the first execution is mechanical and every st
 10. **Restore drill** (section 9): the first production deployment is **not accepted** until one complete drill passes.
 11. **Acceptance**: `bash ops/production/accept.sh --evidence-dir <dir>` with the launch lock closed (section 12). It needs
     the synthetic-tenant inputs of [LAUNCH-002-ACCEPTANCE-TENANT](security/LAUNCH-002-ACCEPTANCE-TENANT.md) and stops before
-    the browser journeys when any is missing; the operator then disables the synthetic first-administrator identity.
+    the browser journeys when any is missing. The run ends `PENDING_CLEANUP` and exits 3, never PASS: the operator then disables
+    the synthetic first-administrator identity in the realm console and runs `accept.sh --evidence-dir <dir> --finalize`,
+    which verifies it read-only and re-checks the launch lock; only then is `result=PASS` written.
 
 ## 5. Deploying a release
 

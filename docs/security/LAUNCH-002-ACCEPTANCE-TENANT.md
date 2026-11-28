@@ -34,4 +34,8 @@ After the run:
    (the plus-address `acc-admin-<stamp>`). Record the date and the operator in the acceptance record.
 2. The organization remains, with no active access, identified by its `ACCEPTANCE-SYNTHETIC` name. Removing it follows the
    approved retention and erasure path under a separate approval; it is never done by direct database editing.
-3. Confirm the launch lock is still `CLOSED` (`accept.sh` step 08 does).
+3. Run `bash ops/production/accept.sh --evidence-dir <same dir> --finalize`. It refuses unless the run ended
+   `PENDING_CLEANUP` with unchanged checksums, then verifies read-only in the production realm that exactly one user holds the
+   synthetic administrator's address and is **disabled** (step 09), re-checks that the launch lock is `CLOSED` (step 10) and
+   only then writes `result=PASS`. Until then the acceptance is not reported as passed, and the first administrator staying
+   enabled keeps it failing.

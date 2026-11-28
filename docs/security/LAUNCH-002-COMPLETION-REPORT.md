@@ -40,7 +40,7 @@ the first drill runs on the production host. Scale path in ADR 0048 section 5.
 
 Run in the sandbox (no Terraform, Docker, shellcheck or AWS available there):
 
-- `node --test scripts/ops/production-policy.test.mjs`: **92 passed, 0 failed** (after the R231 round).
+- `node --test scripts/ops/production-policy.test.mjs`: **95 passed, 0 failed** (after the R231 round and the final corrections).
 - All of `pnpm ops:test`'s files: **284 passed, 0 failed** (sandbox, Linux), including the BACKLOG test.
 - `tsc` (app and node projects), `eslint` and `prettier --check` clean on the web changes and the new specs; every shell
   script passes `bash -n`; `render-realm.py` compiles and renders in the tests.
@@ -52,7 +52,7 @@ Run in the sandbox (no Terraform, Docker, shellcheck or AWS available there):
 
 Static, test-enforced evidence (see the evidence map): only the load balancer is public (443 and the 80 redirect); the host
 accepts one listener port from the load balancer only and has no public address, key pair or SSH rule; egress is VPC
-endpoints, S3 and, once approved, the e-mail submission range; all storage is encrypted, buckets block public access, are
+endpoints (including the Amazon SES SMTP interface endpoint, the only mail path), S3 and nothing else; all storage is encrypted, buckets block public access, are
 versioned and TLS-only, the evidence bucket is Object-Locked; IAM is least privilege (the host cannot change the lock or
 delete backups, the operator cannot read a secret, the lock-lift policy is attached to nobody); no secret is an environment
 value, in Git, or in output; the production realm has no accounts, exact redirect and web origins and the privileged-MFA
@@ -93,6 +93,19 @@ and carries no test badge; the application origin is noindex.
 
 Residual risk: the synthetic tenant journey, the SES endpoint path and the Terraform job in CI have not run against real
 infrastructure; the first two are exercised at AWS verification, which this round does not start.
+
+## 8B. Final corrections after the focused re-review
+
+1. **Acceptance cannot pass before the synthetic administrator is disabled.** `accept.sh` now ends `result=PENDING_CLEANUP`
+   (exit 3) and never writes PASS. `accept.sh --evidence-dir <dir> --finalize` refuses unless the run ended
+   `PENDING_CLEANUP` with unchanged checksums, then runs the read-only host check `acceptance-cleanup-check.sh` (exactly one
+   realm user with the synthetic administrator's address, and it is disabled; nothing printed but a verdict) and re-checks the
+   launch lock; only then is `result=PASS` written. Tests: static ordering (exactly one `finish PASS`, after step 09) and a
+   functional test of the check against a stand-in realm API (disabled passes; enabled, none, two and a non-synthetic address
+   fail; no address or token is printed).
+2. **Stale wording.** The remaining "e-mail submission range" and "provider's submission range" statements (this report,
+   `compose.yaml`, `variables.tf`) now describe the Amazon SES SMTP endpoint as the only mail path; the readiness checklist
+   names SES and the new finalize item. The PR description is regenerated from this report and the live CI checks of the head.
 
 ## 9. Limitations, costs and prerequisites
 

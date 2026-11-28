@@ -979,3 +979,71 @@ describe('production infrastructure CI (R231-7)', () => {
     assert.match(read('package.json'), /"node":\s*">=24\./u);
   });
 });
+
+describe('acceptance cannot pass before the synthetic administrator is disabled (final correction 1)', () => {
+  const accept = read('ops/production/accept.sh');
+  it('the run ends PENDING_CLEANUP and only --finalize can write PASS', () => {
+    assert.doesNotMatch(accept, /result=\$\(\[/u, 'no result computed from FAIL alone');
+    assert.match(accept, /finish PENDING_CLEANUP/u);
+    assert.equal((accept.match(/finish PASS/gu) ?? []).length, 1);
+    assert.ok(accept.indexOf('finish PASS') > accept.indexOf('FINALIZE" = 1'));
+    assert.match(accept, /exit 3/u);
+    assert.match(accept, /grep -qx 'result=PENDING_CLEANUP'/u);
+    assert.match(accept, /shasum -a 256 -c SHA256SUMS/u);
+    assert.ok(accept.indexOf('09-synthetic-admin-disabled') < accept.indexOf('finish PASS'));
+    assert.match(accept, /10-launch-lock-closed-at-finalize/u);
+    assert.match(read('ops/production/acceptance-cleanup-check.sh'), /\$PROD_REALM/u);
+  });
+
+  const check = async (users, extra = {}) => {
+    const { createServer } = await import('node:http');
+    const { execFile } = await import('node:child_process');
+    const server = createServer((req, res) => {
+      res.setHeader('content-type', 'application/json');
+      if (req.url?.includes('/realms/master/protocol/openid-connect/token')) {
+        res.end(JSON.stringify({ access_token: 'synthetic-test-token' }));
+      } else if (req.url?.startsWith('/identity/admin/realms/divalhr-production/users')) {
+        res.end(JSON.stringify(users));
+      } else {
+        res.statusCode = 404;
+        res.end('{}');
+      }
+    });
+    await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
+    const secrets = mkdtempSync(join(tmpdir(), 'kc-'));
+    mkdirSync(join(secrets, 'ops'));
+    writeFileSync(join(secrets, 'ops', 'kc-admin.env'), 'KC_ADMIN_USER=op\nKC_ADMIN_PASSWORD=pw\n');
+    const address = extra.address ?? 'synthetic+acc-admin-abc123@example.test';
+    try {
+      return await new Promise((done) =>
+        execFile(
+          'python3',
+          [
+            join(prodOps, 'acceptance-cleanup-check.py'),
+            `http://127.0.0.1:${server.address().port}/identity`,
+            secrets,
+            'divalhr-production',
+            address,
+          ],
+          (error, stdout) => done({ code: error ? error.code : 0, stdout }),
+        ),
+      );
+    } finally {
+      server.close();
+    }
+  };
+  it('the host check passes only for exactly one DISABLED synthetic administrator', async () => {
+    assert.equal((await check([{ enabled: false }])).code, 0);
+    assert.equal((await check([{ enabled: true }])).code, 1);
+    assert.equal((await check([])).code, 1);
+    assert.equal((await check([{ enabled: false }, { enabled: false }])).code, 1);
+    const other = await check([{ enabled: false }], { address: 'someone@example.test' });
+    assert.equal(other.code, 1, 'only a synthetic acceptance administrator can be checked');
+    const verdict = await check([{ enabled: true }]);
+    assert.doesNotMatch(
+      verdict.stdout,
+      /example\.test|synthetic-test-token/u,
+      'no address or token printed',
+    );
+  });
+});

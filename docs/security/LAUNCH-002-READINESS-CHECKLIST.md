@@ -15,10 +15,11 @@ nothing here lifts the lock. Mark each line with the evidence path or the reason
 | 5  | `evidence-host.sh` passes: only 8443 non-loopback, no SSH, no test service, secret files 0400, timers active        | `04-host-evidence.txt` |
 | 6  | Final-mode realm verification passed in the deployment; bootstrap administrator removed                            | deploy log |
 | 7  | Secrets exist only in Secrets Manager and as 0400 files; `log-hygiene.sh` passes after real sign-ins               | `06-log-hygiene.txt` |
-| 8  | E-mail provider configured (`launch-lock.sh status` prints `email: CONFIGURED`), SPF/DKIM/DMARC verified, one synthetic message delivered | operator record (no addresses in Git) |
+| 8  | Amazon SES configured (verified identity, SPF/DKIM/DMARC, production access; `launch-lock.sh status` prints `email: CONFIGURED`), one synthetic message delivered through the SES SMTP endpoint | operator record (no addresses in Git) |
 | 9  | One complete restore drill passed; measured recovery recorded                                                       | drill template |
 | 10 | Backup younger than 26 h and verified off-host; backup, drill-age and heartbeat alarms exist and the SNS subscription is confirmed | `05-backup-and-drill.txt`, SNS confirmation |
-| 11 | Both browser journeys passed (public/sign-in; bilingual synthetic tenant)                                           | `07-browser-journeys.txt` |
+| 11 | Both browser journeys passed (public/sign-in; bilingual synthetic tenant); the run ends `PENDING_CLEANUP`, never PASS | `07-browser-journeys.txt`, `result.txt` |
+| 11a | The synthetic first administrator is disabled and `accept.sh --finalize` verified it read-only; only then `result=PASS` | `09-synthetic-admin-disabled.txt`, `10-launch-lock-closed-at-finalize.txt`, `result.txt` |
 | 12 | Launch lock `CLOSED` in SSM and on the host before and after acceptance                                             | `01-`, `08-launch-lock-still-closed.txt` |
 | 13 | Founder approval recorded for the release; deployment evidence package kept                                         | `approval.txt`, evidence bucket |
 | 14 | Costs reviewed against the AWS Pricing Calculator estimate                                                          | estimate on file |

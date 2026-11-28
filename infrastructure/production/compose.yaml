@@ -61,9 +61,9 @@ networks:
       config:
         - subnet: ${PROD_SUBNET_PREFIX:-10.72}.4.0/24
           ip_range: ${PROD_SUBNET_PREFIX:-10.72}.4.128/25
-  # Core and Keycloak only, for the e-mail provider. The host's security group allows exactly the
-  # provider's submission range on one port and nothing else (deny by default), so this network
-  # reaches no other destination.
+  # Core and Keycloak only, for e-mail. The only route out of the private subnet to a mail service is the
+  # Amazon SES SMTP interface VPC endpoint on the submission port (no NAT, no default route), so
+  # this network reaches no other destination.
   mail-out:
     ipam:
       config:
