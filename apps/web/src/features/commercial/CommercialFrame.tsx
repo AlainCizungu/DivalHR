@@ -7,6 +7,7 @@ import { BrandMark, EnvironmentBadge, LanguageSwitcher, Wordmark } from '../../s
 import { Icon } from '../../ui/Icon';
 import './commercial.css';
 import { applyPageMeta } from './metadata';
+import { appUrl, AppLink, onPublicOrigin } from './origins';
 import { langOf } from './truth';
 
 /**
@@ -38,7 +39,9 @@ export function SignInButton({ className }: { className: string }) {
       type="button"
       className={className}
       onClick={() => {
-        void signIn('/');
+        // On the public origin the identity flow does not exist: continue on the application origin.
+        if (onPublicOrigin()) window.location.assign(appUrl('/'));
+        else void signIn('/');
       }}
     >
       <Icon name="signIn" />
@@ -195,7 +198,7 @@ export function CommercialFrame({
               <a href="/#pilot">{t('commercial.footer.pilot')}</a>
             </li>
             <li>
-              <Link to="/partners/apply">{t('commercial.footer.partnerApplication')}</Link>
+              <AppLink to="/partners/apply">{t('commercial.footer.partnerApplication')}</AppLink>
             </li>
             <li>
               <a href="/#security">{t('commercial.footer.security')}</a>

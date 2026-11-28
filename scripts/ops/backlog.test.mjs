@@ -34,10 +34,11 @@ const DEPLOYED = [
   '7ade59af7f1bbf681ef4eb0880a73e2125c3130a', // MVP-120E, PR #218: approved partners and the information-only catalogue, the previous release
   '093b0da126608f744e4498a193473434c89a771b', // DEVX-005, PR #223: launch stabilization bundle (no migration), the previous release
   'c635afb2a67495abc12b3517984a6ac7e1224b87', // MVP-120F, PR #225: consented partner referral (V57), the previous release
-  '225da6cb13c5cc6e1b12c11ff4b5ce03134aa2f7', // LAUNCH-001, PR #227: privacy governance (V58), running
+  '225da6cb13c5cc6e1b12c11ff4b5ce03134aa2f7', // LAUNCH-001, PR #227: privacy governance (V58), the previous release
+  '581164a997039119cfca5a2816752b73e96db579', // LAUNCH-004, PR #229: commercial website (no migration), running
 ];
-const RUNNING = DEPLOYED[19];
-const PREVIOUS = DEPLOYED[18];
+const RUNNING = DEPLOYED[20];
+const PREVIOUS = DEPLOYED[19];
 const CAPABILITY = DEPLOYED[9];
 /** The stories of the payroll release train: contained in the single release that deployed them. */
 const TRAIN = ['MVP-094A', 'MVP-094B'];
@@ -110,7 +111,7 @@ test('the header names the deployed hr-dev release and the one deployed before i
   assert.match(header, /PR #184, MVP-095A/u);
   assert.match(header, /PR #188, MVP-095B/u);
   assert.match(header, /PR #189, R187-1/u);
-  assert.match(header, /as of 2026-11-26/u);
+  assert.match(header, /as of 2026-11-27/u);
   assert.match(header, /PR #199, TRUTH-003/u);
   assert.match(
     header,
@@ -456,7 +457,7 @@ test('truth rule 1: the stated release, migration and MVP-095C status equal the 
   assert.notEqual(stale, backlog);
   assert.ok(releaseClaimProblems(stale, RUNNING).length > 0, 'a stale header SHA fails');
   const wrongMigration = backlog.replace(
-    'Issue #206 is closed)))))); migration V58 is applied',
+    'Issue #206 is closed))))))); migration V58 is applied',
     'Issue #206 is closed)))))); migration V55 is applied',
   );
   assert.notEqual(wrongMigration, backlog);
@@ -470,7 +471,7 @@ test('truth rule 1: the stated release, migration and MVP-095C status equal the 
   );
   assert.notEqual(inProgress, backlog);
   assert.ok(releaseClaimProblems(inProgress, RUNNING).length > 0, 'an in-progress MVP-095C fails');
-  const staleTable = backlog.replace(/^\| LAUNCH-001 .*$/mu, '');
+  const staleTable = backlog.replace(/^\| LAUNCH-004 .*$/mu, '');
   assert.notEqual(staleTable, backlog);
   assert.ok(
     releaseClaimProblems(staleTable, RUNNING).length > 0,
@@ -886,7 +887,7 @@ test('truth rule 5: the backlog records MVP-096 as deployed and accepted, with i
         `${name}: names the problem`,
       );
   }
-  const noTableRow = backlog.replace(/^\| LAUNCH-001 .*$/mu, '');
+  const noTableRow = backlog.replace(/^\| LAUNCH-004 .*$/mu, '');
   assert.ok(releaseClaimProblems(noTableRow, RUNNING).length > 0, 'a missing release row fails');
   const wrongPr = backlog.replace('| MVP-096   | #195 |', '| MVP-096   | #196 |');
   assert.notEqual(wrongPr, backlog);

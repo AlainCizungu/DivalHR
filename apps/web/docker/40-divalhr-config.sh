@@ -10,6 +10,22 @@ for name in DIVALHR_ENVIRONMENT DIVALHR_CORE_API_URL DIVALHR_AI_SERVICE_URL DIVA
   esac
 done
 
+# LAUNCH-002: the two optional production origins (canonical commercial site and application). Each
+# must be a bare https origin; anything else is refused. Unset (every other environment): omitted.
+EXTRA=""
+for pair in publicOrigin:DIVALHR_PUBLIC_ORIGIN appOrigin:DIVALHR_APP_ORIGIN; do
+  key="${pair%%:*}"; name="${pair#*:}"
+  eval "value=\${$name:-}"
+  [ -n "$value" ] || continue
+  case "$value" in
+    https://*[!a-z0-9.:/-]*|*/|https://*/*) echo "Refusing unsafe value for $name" >&2; exit 1 ;;
+    https://?*) ;;
+    *) echo "Refusing unsafe value for $name" >&2; exit 1 ;;
+  esac
+  EXTRA="${EXTRA}  ${key}: '${value}',
+"
+done
+
 mkdir -p /tmp/divalhr
 cat > /tmp/divalhr/config.js <<CONFIG
 window.__DIVALHR_CONFIG__ = {
@@ -18,6 +34,6 @@ window.__DIVALHR_CONFIG__ = {
   aiServiceUrl: '${DIVALHR_AI_SERVICE_URL}',
   oidcAuthority: '${DIVALHR_OIDC_AUTHORITY}',
   oidcClientId: '${DIVALHR_OIDC_CLIENT_ID}',
-};
+${EXTRA}};
 CONFIG
 echo "divalhr: runtime config written for environment ${DIVALHR_ENVIRONMENT}"

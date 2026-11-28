@@ -1,3 +1,5 @@
+import { canonicalOrigin } from './origins';
+
 /**
  * LAUNCH-004: localized page metadata for the commercial page. The static tags in index.html carry
  * the French defaults (the document declares lang="fr") for crawlers that do not run scripts, without an image URL because the origin differs per environment; this applies the visitor's language and the social image.
@@ -60,7 +62,8 @@ export function structuredData(origin: string, description: string) {
 /** Applies the metadata and returns a function that restores the previous title. */
 export function applyPageMeta(meta: PageMeta): () => void {
   const previousTitle = document.title;
-  const origin = window.location.origin;
+  // LAUNCH-002: the canonical origin is the public commercial origin when one is configured.
+  const origin = canonicalOrigin();
   document.title = meta.title;
   setMeta('name', 'description', meta.description);
   setMeta('property', 'og:type', 'website');

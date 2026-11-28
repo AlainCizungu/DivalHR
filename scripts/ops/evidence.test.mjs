@@ -775,3 +775,85 @@ describe('strict path and release reading (R79-3, R79-4)', () => {
     assert.match(out, /^class=complete$/mu);
   });
 });
+
+// --- production deploy gate: ops/production/verify-record.py (R231-2) ----------------------------
+
+const VERIFY = join(ROOT, 'ops/production/verify-record.py');
+const verifyFor = (s, runDir, extra = [], release = s.merge) => {
+  const bundle = s.r.bundle(release, join(WORK, `prod-release-${++counter}.bundle`));
+  return sh('python3', [
+    '-I',
+    VERIFY,
+    '--release',
+    release,
+    '--bundle',
+    bundle,
+    '--run-dir',
+    runDir,
+    ...extra,
+  ]);
+};
+
+describe('production verification-record gate (R231-2)', () => {
+  it('accepts exactly one full, complete, clean, fresh record of the release tree', () => {
+    const s = scenario();
+    const runs = runsDir();
+    const run = makeRun(s, runs);
+    const r = verifyFor(s, run.dir);
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, new RegExp(`ACCEPT ${run.id}`, 'u'));
+  });
+
+  it('never accepts a pr-profile record, and a good sibling run cannot stand in for it', () => {
+    const s = scenario();
+    const runs = runsDir();
+    makeRun(s, runs); // a good full sibling
+    const pr = makeRun(s, runs, { profile: 'pr' });
+    const r = verifyFor(s, pr.dir);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /REJECT/u);
+    assert.doesNotMatch(r.out, /ACCEPT/u);
+  });
+
+  it('rejects an incomplete classification, a missing rehearsal step, a flaky or failed test', () => {
+    for (const opts of [
+      { cls: 'app', steps: APP_STEPS },
+      { steps: ALL.filter((x) => x !== 'restore-drill') },
+      { browser: 'passed=89 skipped=0 failed=0 flaky=1 notrun=0 retries=0 hygiene=PASS' },
+      { browser: 'passed=89 skipped=0 failed=0 flaky=0 notrun=0 retries=2 hygiene=PASS' },
+      { browser: 'passed=89 skipped=0 failed=0 flaky=0 notrun=1 retries=0 hygiene=PASS' },
+      { browser: 'passed=89 skipped=0 failed=0 flaky=0 notrun=0 retries=0 hygiene=FAIL' },
+      { core: 'total=901 failures=1 errors=0 skipped=0' },
+      { core: 'total=901 failures=0 errors=1 skipped=0' },
+    ]) {
+      const s = scenario();
+      const run = makeRun(s, runsDir(), opts);
+      const r = verifyFor(s, run.dir);
+      assert.equal(r.code, 1, `${JSON.stringify(opts)}\n${r.out}`);
+    }
+  });
+
+  it('rejects a record for another tree and an older record than the freshness limit', () => {
+    const s = scenario();
+    const other = scenario({ 'apps/web/src/a.ts': 'different\n' });
+    const run = makeRun(s, runsDir());
+    assert.equal(verifyFor(other, run.dir, [], other.merge).code, 1);
+    const stale = verifyFor(s, run.dir, ['--max-age-hours', '0']);
+    assert.equal(stale.code, 1, stale.out);
+    assert.match(stale.out, /old/u);
+  });
+
+  it('host mode: the record must equal the workstation checksum, then is restored to 0444', () => {
+    const s = scenario();
+    const run = makeRun(s, runsDir());
+    const rec = join(run.dir, 'evidence.json');
+    const side = join(run.dir, 'evidence.sha256');
+    const digest = sh('shasum', ['-a', '256', rec]).out.split(/\s+/u)[0];
+    chmodSync(rec, 0o644); // what the S3 round trip leaves behind
+    chmodSync(side, 0o644);
+    assert.equal(verifyFor(s, run.dir).code, 1, 'without the restore the mode check rejects');
+    assert.equal(verifyFor(s, run.dir, ['--expect-evidence-sha256', 'f'.repeat(64)]).code, 1);
+    const ok = verifyFor(s, run.dir, ['--expect-evidence-sha256', digest, '--restore-mode']);
+    assert.equal(ok.code, 0, ok.out);
+  });
+});

@@ -8,6 +8,10 @@ export interface RuntimeConfig {
   aiServiceUrl: string;
   oidcAuthority: string;
   oidcClientId: string;
+  /** LAUNCH-002: the canonical commercial origin, set only in production (https://divalhr.com). */
+  publicOrigin?: string;
+  /** LAUNCH-002: the authenticated application origin, set only in production (https://app.divalhr.com). */
+  appOrigin?: string;
 }
 
 declare global {

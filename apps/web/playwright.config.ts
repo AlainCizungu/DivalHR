@@ -11,8 +11,9 @@ process.env.PLAYWRIGHT_NO_COPY_PROMPT = '1';
  */
 export default defineConfig({
   testDir: './e2e',
-  // OPS-001: the deployed test environment has its own configuration (playwright.hr-dev.config.ts).
-  testIgnore: ['**/hr-dev/**'],
+  // OPS-001 / LAUNCH-002: the deployed environments have their own configurations
+  // (playwright.hr-dev.config.ts, playwright.production.config.ts).
+  testIgnore: ['**/hr-dev/**', '**/production/**'],
   timeout: 60_000,
   expect: { timeout: 10_000 },
   retries: process.env.CI ? 1 : 0,
